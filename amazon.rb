@@ -53,7 +53,7 @@ case country
 		$logintext = 'Melden Sie sich an'
 		$accounttext = 'Mein Konto'
 		$orderstext = 'Meine Bestellungen'
-		$currency = 'EUR '
+		$currency = 'EUR'
 		$overviewtext = 'Bestellübersicht drucken'
 		$pricedelimiter = ','
 		$thousandseperator = '.'
@@ -67,6 +67,7 @@ a = Mechanize.new { |agent|
 a.agent.http.verify_mode = OpenSSL::SSL::VERIFY_NONE
 
 puts 'Now scanning https://amazon.' + $tld + '/'
+puts 'Note: Orders at a price of 0.00 (e.g. when paid with a gift card) are also counted.'
 
 a.get('https://amazon.' + $tld + '/') do |page|
 	start_page = page.link_with(:id => 'nav-your-account')
@@ -107,9 +108,6 @@ a.get('https://amazon.' + $tld + '/') do |page|
 		count = year_page.search(".//div[@class='num-results']/b[1]")
 		year = year_page.search(".//div[@class='num-results']/b[2]")
 
-		puts "Year " + year.text + ", " + count.text + " orders"
-		print "\t"
-
 		year_sum = 0.0
 		order_links = Array.new
 
@@ -122,11 +120,8 @@ a.get('https://amazon.' + $tld + '/') do |page|
 
 			if(money_str.index($currency) == nil) then
 				money_str = order_page.search(".//body//table[1]/tr/td/table/tr[4]/td/b").text
-
+			
 				if(money_str.index($currency) == nil) then
-					puts $currency + " not found. Link: " + link.href
-					puts "title " + order_page.title
-
 					next
 				end
 			end
@@ -148,14 +143,12 @@ a.get('https://amazon.' + $tld + '/') do |page|
 			total_sum = total_sum + eurs
 			year_sum = year_sum + eurs
 
-			print eurs
-			print " "
-			STDOUT.flush
 		end
 
-		puts "Done. Year total: " + year_sum.to_s
+        puts "Year " + year.text + ", " + count.text + " orders" + ", " + sprintf('%.2f', year_sum.to_s) + " " + $currency + " in total"
+        
 	end
 end
 
 
-puts "Done. Total amount: " + total_sum.to_s
+puts "Congratulations! So far you've spent " + sprintf('%.2f', total_sum.to_s) + " " + $currency + " on https://amazon." + $tld + "."
